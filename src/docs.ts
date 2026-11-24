@@ -375,7 +375,12 @@ class DocsAfterDark {
     private updateMode(): boolean {
         this.resetMode();
 
-        if (this.extensionData.mode === ExtensionMode.Off) {
+        // Auto mode only applies the extension while the system is dark
+        if (
+            this.extensionData.mode === ExtensionMode.Off ||
+            (this.extensionData.mode === ExtensionMode.Auto &&
+                this.getEffectiveMode() === ExtensionMode.Light)
+        ) {
             this.removeExtension();
             return false;
         }
@@ -405,17 +410,7 @@ class DocsAfterDark {
     }
 
     private updateDocumentBackground() {
-        // In auto mode with a light system, always use the default (white)
-        // background, matching what the Light button sets.
-        if (
-            this.extensionData.mode === ExtensionMode.Auto &&
-            this.getEffectiveMode() === ExtensionMode.Light
-        ) {
-            setStyleProperty(
-                "documentBackground",
-                documentBackgroundStyles[DocumentBackground.Default]
-            );
-        } else if (this.extensionData.doc_bg == DocumentBackground.Custom) {
+        if (this.extensionData.doc_bg == DocumentBackground.Custom) {
             setStyleProperty(
                 "documentBackground",
                 this.extensionData.custom_bg ?? ""
@@ -429,11 +424,7 @@ class DocsAfterDark {
     }
 
     private updateDocumentInvert() {
-        const lightInAuto =
-            this.extensionData.mode === ExtensionMode.Auto &&
-            this.getEffectiveMode() === ExtensionMode.Light;
-
-        if (!this.extensionData.invert_enabled || lightInAuto) {
+        if (!this.extensionData.invert_enabled) {
             setStyleProperty("documentInvert", documentInvert.off);
             return;
         }

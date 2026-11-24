@@ -101,7 +101,7 @@ class toggleCategoryComponent {
 
 class ModeComponent extends StateSubscriber {
     private modeButtons = document.querySelectorAll(
-        "#modeDark, #modeLight, #modeOff"
+        "#modeAuto, #modeDark, #modeLight, #modeOff"
     ) as NodeListOf<HTMLButtonElement>;
 
     initialize() {
@@ -122,6 +122,16 @@ class ModeComponent extends StateSubscriber {
                 switch (target.value) {
                     case "off":
                         this.state.setData({ mode: ExtensionMode.Off });
+                        break;
+                    case "auto":
+                        // Stored settings use the dark defaults; the content
+                        // script overrides them while the system is light.
+                        this.state.setData({
+                            mode: ExtensionMode.Auto,
+                            doc_bg: DocumentBackground.Blend,
+                            invert_enabled: true,
+                            invert_mode: defaultExtensionData.invert_mode,
+                        });
                         break;
                     case "dark":
                         this.state.setData({
@@ -149,6 +159,8 @@ class ModeComponent extends StateSubscriber {
         this.modeButtons.forEach((button) => {
             if (
                 (button.value == "off" && newData.mode == ExtensionMode.Off) ||
+                (button.value == "auto" &&
+                    newData.mode == ExtensionMode.Auto) ||
                 (button.value == "dark" &&
                     newData.mode == ExtensionMode.Dark) ||
                 (button.value == "light" && newData.mode == ExtensionMode.Light)
@@ -184,7 +196,10 @@ class DarkModeComponent extends StateSubscriber {
     update(newData: ExtensionData): void {
         this.resetAppearance();
 
-        if (newData.mode != ExtensionMode.Dark) {
+        if (
+            newData.mode != ExtensionMode.Dark &&
+            newData.mode != ExtensionMode.Auto
+        ) {
             this.section.classList.add("hidden");
         }
 
@@ -362,7 +377,8 @@ class DocumentBackgroundComponent extends StateSubscriber {
                     value == DocumentBackground.Black ||
                     ((value == DocumentBackground.Blend ||
                         value == DocumentBackground.Shade) &&
-                        data.mode == ExtensionMode.Dark)
+                        (data.mode == ExtensionMode.Dark ||
+                            data.mode == ExtensionMode.Auto))
                 ) {
                     update.invert_enabled = true;
                 } else {

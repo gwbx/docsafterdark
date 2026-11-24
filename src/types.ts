@@ -13,6 +13,8 @@ enum ExtensionMode {
     Off = 0,
     Light = 1,
     Dark = 2,
+    // Follows the system color scheme (prefers-color-scheme)
+    Auto = 3,
 }
 
 enum DarkModeOperation {

@@ -47,6 +47,25 @@ const REPLACEMENTS_PATH = "assets/replacements/";
 class DocsAfterDark {
     private extensionData: ExtensionData = defaultExtensionData;
     private isTempDisabled: boolean = false;
+    private systemDarkQuery: MediaQueryList = window.matchMedia(
+        "(prefers-color-scheme: dark)"
+    );
+
+    // Resolves Auto to Dark/Light based on the system color scheme
+    private getEffectiveMode(): ExtensionMode {
+        if (this.extensionData.mode === ExtensionMode.Auto) {
+            return this.systemDarkQuery.matches
+                ? ExtensionMode.Dark
+                : ExtensionMode.Light;
+        }
+        return this.extensionData.mode;
+    }
+
+    private handleSystemSchemeChange = () => {
+        if (this.extensionData.mode === ExtensionMode.Auto) {
+            this.updateExtension();
+        }
+    };
 
     async initialize(): Promise<void> {
         Logger.info("Hello from DocsAfterDark!");
@@ -107,6 +126,11 @@ class DocsAfterDark {
 
         // Save the storage data to persist the default settings
         await setStorage(this.extensionData);
+
+        this.systemDarkQuery.addEventListener(
+            "change",
+            this.handleSystemSchemeChange
+        );
 
         registerStorageListener(this.handleStorageUpdate);
         registerMessageListener(this.handleMessageUpdate);
@@ -351,7 +375,12 @@ class DocsAfterDark {
     private updateMode(): boolean {
         this.resetMode();
 
-        if (this.extensionData.mode === ExtensionMode.Off) {
+        // Auto mode only applies the extension while the system is dark
+        if (
+            this.extensionData.mode === ExtensionMode.Off ||
+            (this.extensionData.mode === ExtensionMode.Auto &&
+                this.getEffectiveMode() === ExtensionMode.Light)
+        ) {
             this.removeExtension();
             return false;
         }
@@ -361,9 +390,11 @@ class DocsAfterDark {
         addClassToHTML(enabledClass);
         insertStylesheet("docs.bundle.css", "stylesheet");
 
-        if (this.extensionData.mode === ExtensionMode.Dark) {
+        const effectiveMode = this.getEffectiveMode();
+
+        if (effectiveMode === ExtensionMode.Dark) {
             this.updateDarkMode();
-        } else if (this.extensionData.mode === ExtensionMode.Light) {
+        } else if (effectiveMode === ExtensionMode.Light) {
             this.updateLightMode();
         } else {
             throw new Error(
